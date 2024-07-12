@@ -28,3 +28,32 @@ def get_config():
         "pinecone_api_key": pinecone_api_key,
         "cohere_api_key": cohere_api_key
     }
+
+
+def get_config_streamlit():
+    openai_api_key = st.secrets["openai_key"]
+    azure_api_key = st.secrets["azure_openai_key"]
+    azure_api_version = st.secrets["api_version"]
+    azure_api_endpoint = st.secrets["azure_openai_endpoint"]
+    azure_api_deployment_id = st.secrets["azure_openai_deployment_id"]
+    pinecone_api_key = st.secrets["pinecone_api_key"]
+    cohere_api_key = st.secrets["cohere_api_key"]
+
+    config_openai = {
+        'api_key': openai_api_key,
+    }
+
+    config_azure = {
+        'azure_endpoint': azure_api_endpoint,
+        'azure_deployment': azure_api_deployment_id,
+        'api_version': azure_api_version,
+        'api_key': azure_api_key
+    }
+
+    return {
+        "config_openai": config_openai,
+        "config_azure": config_azure,
+        "pinecone_api_key": pinecone_api_key,
+        "cohere_api_key": cohere_api_key
+    }
+

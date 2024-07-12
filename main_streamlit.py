@@ -6,6 +6,7 @@ from utils.rag_chain_with_chat_history import create_chain_with_chat_history
 from dotenv import load_dotenv
 from utils.chat_history import ChatHistory
 import hmac
+from utils.config import get_config_streamlit
 
 # Apply asyncio and load environment variables
 # nest_asyncio.apply()
@@ -63,33 +64,6 @@ def check_password():
     if "password_correct" in st.session_state:
         st.error("😕 Password incorrect")
     return False
-
-def get_config_streamlit():
-    openai_api_key = st.secrets["openai_key"]
-    azure_api_key = st.secrets["azure_openai_key"]
-    azure_api_version = st.secrets["api_version"]
-    azure_api_endpoint = st.secrets["azure_openai_endpoint"]
-    azure_api_deployment_id = st.secrets["azure_openai_deployment_id"]
-    pinecone_api_key = st.secrets["pinecone_api_key"]
-    cohere_api_key = st.secrets["cohere_api_key"]
-
-    config_openai = {
-        'api_key': openai_api_key,
-    }
-
-    config_azure = {
-        'azure_endpoint': azure_api_endpoint,
-        'azure_deployment': azure_api_deployment_id,
-        'api_version': azure_api_version,
-        'api_key': azure_api_key
-    }
-
-    return {
-        "config_openai": config_openai,
-        "config_azure": config_azure,
-        "pinecone_api_key": pinecone_api_key,
-        "cohere_api_key": cohere_api_key
-    }
 
 
 @st.cache_resource(show_spinner=False)
