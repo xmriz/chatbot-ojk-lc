@@ -12,7 +12,8 @@ import hmac
 # nest_asyncio.apply()
 load_dotenv()
 
-config = get_config_streamlit()
+# ============================== PROMPTING ==============================
+
 
 # Templates for prompts
 _TEMPLATE = """Given the following conversation and a follow up question, rephrase the 
@@ -43,20 +44,7 @@ But if you cannot find the regulation number, just provide the answer.
 Question: {question}
 """
 
-
-# Page configuration
-st.set_page_config(page_title="OJK Chatbot", page_icon="🤖", layout="centered")
-
-# Initialize chat history
-if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {"role": "assistant",
-            "content": "Ask me a question about any Regulation of BI and OJK"}
-    ]
-
-TOP_K = 3
-model_name = ModelName.AZURE_OPENAI
-
+# ============================== FUNCTIONS ==============================
 
 def check_password():
     """Returns `True` if the user had the correct password."""
@@ -77,6 +65,33 @@ def check_password():
         st.error("😕 Password incorrect")
     return False
 
+def get_config_streamlit():
+    openai_api_key = st.secrets["openai_key"]
+    azure_api_key = st.secrets["azure_openai_key"]
+    azure_api_version = st.secrets["api_version"]
+    azure_api_endpoint = st.secrets["azure_openai_endpoint"]
+    azure_api_deployment_id = st.secrets["azure_openai_deployment_id"]
+    pinecone_api_key = st.secrets["pinecone_api_key"]
+    cohere_api_key = st.secrets["cohere_api_key"]
+
+    config_openai = {
+        'api_key': openai_api_key,
+    }
+
+    config_azure = {
+        'azure_endpoint': azure_api_endpoint,
+        'azure_deployment': azure_api_deployment_id,
+        'api_version': azure_api_version,
+        'api_key': azure_api_key
+    }
+
+    return {
+        "config_openai": config_openai,
+        "config_azure": config_azure,
+        "pinecone_api_key": pinecone_api_key,
+        "cohere_api_key": cohere_api_key
+    }
+
 
 @st.cache_resource(show_spinner=False)
 def load_chain():
@@ -95,6 +110,24 @@ def load_chain():
         llm_model=llm_model,
     )
     return chain
+
+
+# ============================== MAIN ==============================
+
+config = get_config_streamlit()
+
+# Page configuration
+st.set_page_config(page_title="OJK Chatbot", page_icon="🤖", layout="centered")
+
+# Initialize chat history
+if "messages" not in st.session_state:
+    st.session_state.messages = [
+        {"role": "assistant",
+            "content": "Ask me a question about any Regulation of BI and OJK"}
+    ]
+
+TOP_K = 3
+model_name = ModelName.AZURE_OPENAI
 
 
 # Initialize chain and chat history
