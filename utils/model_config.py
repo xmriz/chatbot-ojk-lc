@@ -6,6 +6,7 @@ from langchain_community.embeddings import OllamaEmbeddings
 
 # ================== ENUMS ==================
 
+
 class ModelName(Enum):
     OLLAMA = 'ollama'
     OPENAI = 'openai'
@@ -13,17 +14,19 @@ class ModelName(Enum):
 
 # ================== FUNCTIONS ==================
 
+
 def get_openai_models(api_key: str):
     llm = ChatOpenAI(
         api_key=api_key,
         temperature=0.0,
         verbose=True,
-        model="gpt-3.5-turbo-0125",
+        model="gpt-3.5-turbo",
     )
     embedding_llm = OpenAIEmbeddings(
         api_key=api_key,
     )
     return llm, embedding_llm
+
 
 def get_azure_openai_models(azure_endpoint: str, azure_deployment: str, api_version: str, api_key: str):
     llm = AzureChatOpenAI(
@@ -42,6 +45,7 @@ def get_azure_openai_models(azure_endpoint: str, azure_deployment: str, api_vers
     )
     return llm, embedding_llm
 
+
 def get_ollama_models():
     llm = Ollama(
         model='llama3'
@@ -53,16 +57,12 @@ def get_ollama_models():
 
 # ================== MAIN ==================
 
+
 def get_model(model_name: ModelName, config: dict = {}):
     if model_name == ModelName.OPENAI:
-        return get_openai_models(config['api_key'])
+        return get_openai_models(**config['config_openai'])
     elif model_name == ModelName.AZURE_OPENAI:
-        return get_azure_openai_models(
-            config['azure_endpoint'],
-            config['azure_deployment'],
-            config['api_version'],
-            config['api_key']
-        )
+        return get_azure_openai_models(**config['config_azure'])
     elif model_name == ModelName.OLLAMA:
         return get_ollama_models()
     else:
