@@ -77,7 +77,7 @@ class PineconeIndexManager(VectorIndexManager):
         if self.index_name not in existing_indexes:
             raise ValueError(f"Index {self.index_name} does not exist.")
 
-        self.vector_store = PineconeVectorStore(index_name=self.index_name, embedding=self.embed_model)
+        self.vector_store = PineconeVectorStore(index=self.pc.Index(self.index_name), embedding=self.embed_model)
         return self.vector_store
 
 
