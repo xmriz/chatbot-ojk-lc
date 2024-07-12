@@ -1,4 +1,4 @@
-import nest_asyncio
+# import nest_asyncio
 import streamlit as st
 from utils.config import get_config_streamlit
 from utils.vector_store import PineconeIndexManager
@@ -9,7 +9,7 @@ from utils.chat_history import ChatHistory
 import hmac
 
 # Apply asyncio and load environment variables
-nest_asyncio.apply()
+# nest_asyncio.apply()
 load_dotenv()
 
 config = get_config_streamlit()
