@@ -1,6 +1,5 @@
 # import nest_asyncio
 import streamlit as st
-from utils.config import get_config_streamlit
 from utils.vector_store import PineconeIndexManager
 from utils.model_config import ModelName, get_model
 from utils.rag_chain_with_chat_history import create_chain_with_chat_history
