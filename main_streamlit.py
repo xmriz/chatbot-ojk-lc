@@ -128,6 +128,7 @@ if st.session_state.messages[-1]["role"] != "assistant":
             ):
                 if "question" in chunk:
                     question = chunk["question"]
+                    print(question)
                 if "answer" in chunk:
                     answer_chunks.append(chunk["answer"])
                     # Update the placeholder with the current answer
@@ -137,7 +138,6 @@ if st.session_state.messages[-1]["role"] != "assistant":
             st.session_state.chat_history.add_chat(prompt, answer)
             message = {"role": "assistant", "content": answer}
             st.session_state.messages.append(message)
-            print(question)
 
 # Reset button
 if st.button("Reset"):
