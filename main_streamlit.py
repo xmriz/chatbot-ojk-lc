@@ -1,7 +1,7 @@
 import time
 import nest_asyncio
 import streamlit as st
-from utils.config import get_config
+from utils.config import get_config_streamlit
 from utils.vector_store import PineconeIndexManager
 from utils.model_config import ModelName, get_model
 from utils.rag_chain_with_chat_history import create_chain_with_chat_history
@@ -12,6 +12,8 @@ import hmac
 # Apply asyncio and load environment variables
 nest_asyncio.apply()
 load_dotenv()
+
+config = get_config_streamlit()
 
 # Templates for prompts
 _TEMPLATE = """Given the following conversation and a follow up question, rephrase the 
@@ -81,9 +83,9 @@ def check_password():
 def load_chain():
     TOP_K = 6
     llm_model, embed_model = get_model(
-        model_name=ModelName.OPENAI, config=get_config())
+        model_name=ModelName.OPENAI, config=config)
 
-    pinecone = PineconeIndexManager(index_name='ojk', embed_model=embed_model)
+    pinecone = PineconeIndexManager(index_name='ojk', embed_model=embed_model, config=config)
     vector_store = pinecone.load_vector_index()
     retriever = vector_store.as_retriever(
         search_type="similarity", search_kwargs={"k": TOP_K})

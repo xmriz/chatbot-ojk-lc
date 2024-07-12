@@ -34,9 +34,9 @@ class VectorIndexManager(ABC):
 
 
 class PineconeIndexManager(VectorIndexManager):
-    def __init__(self, embed_model, index_name="ojk"):
+    def __init__(self, embed_model, index_name="ojk", config: dict = {}):
         super().__init__(embed_model, index_name)
-        self.api_key = os.getenv("PINECONE_API_KEY")
+        self.api_key = config["pinecone_api_key"]
         self.pc = Pinecone(api_key=self.api_key)
 
     def _create_index_if_not_exists(self):
