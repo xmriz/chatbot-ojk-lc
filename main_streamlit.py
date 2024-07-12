@@ -93,7 +93,7 @@ def get_config_streamlit():
 
 
 @st.cache_resource(show_spinner=False)
-def load_chain():
+def load_chain(config: dict = None):
     TOP_K = 6
     llm_model, embed_model = get_model(
         model_name=ModelName.OPENAI, config=config)
@@ -131,7 +131,7 @@ model_name = ModelName.AZURE_OPENAI
 
 # Initialize chain and chat history
 if "chain" not in st.session_state:
-    st.session_state.chain = load_chain()
+    st.session_state.chain = load_chain(config=config)
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = ChatHistory()
