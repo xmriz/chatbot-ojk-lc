@@ -7,49 +7,16 @@ from dotenv import load_dotenv
 from utils.chat_history import ChatHistory
 import hmac
 from utils.config import get_config_streamlit
+from langchain_cohere import CohereRerank
+from langchain.retrievers import ContextualCompressionRetriever
+
 
 # Apply asyncio and load environment variables
 # nest_asyncio.apply()
 load_dotenv()
 
-# ============================== PROMPTING ==============================
-
-
-# Templates for prompts
-_TEMPLATE = """Given the following conversation and a follow-up question, \
-rephrase the follow-up question to be a standalone question in its original language. 
-If the follow-up question is not clear, indicate so. If the chat history is not relevant \
-to the follow-up question, please ignore the chat history.
-
-Chat History:
-{chat_history}
-
-Follow-up Question: {question}
-Standalone Question: """
-
-_ANSWER_TEMPLATE = """The context information is below.
-Context: 
-{context}
-
-Based on the context and the metadata information provided, answer the query \
-related to banking compliance in Indonesia. 
-Use the context and metadata information only, without relying on prior knowledge. 
-ALWAYS ANSWER IN THE USER'S LANGUAGE.
-
-Please provide your answer in the following format, including the regulation number and file URL if available:
-Answer... \n\n
-Source: [metadata['regulation_number']](metadata['file_url'])
-
-If you cannot find the regulation number, just provide the answer. 
-If file_url is end with .pdf, you can add the page number in the URL like this: \
-[metadata['regulation_number']](metadata['file_url]#page=pagenumber)
-
-DO NOT PROVIDE AMBIGUOUS ANSWERS.
-
-Question: {question}
-"""
-
 # ============================== FUNCTIONS ==============================
+
 
 def check_password():
     """Returns `True` if the user had the correct password."""
@@ -72,27 +39,76 @@ def check_password():
 
 
 @st.cache_resource(show_spinner=False)
-def load_chain(config: dict = None, top_k: int = 10):
-    llm_model, embed_model = get_model(
-        model_name=model_name, config=config)
+def load_chain(config: dict = None, top_k: int = 10, top_n: int = 6, model_name: ModelName = ModelName.AZURE_OPENAI, template: str = None, answer_template: str = None):
 
-    pinecone = PineconeIndexManager(index_name='ojk', embed_model=embed_model, config=config)
+    llm_model, embed_model = get_model(model_name=model_name, config=config)
+
+    pinecone = PineconeIndexManager(
+        index_name='ojk', embed_model=embed_model, config=config)
     vector_store = pinecone.load_vector_index()
-    retriever = vector_store.as_retriever(
-        search_type="similarity", search_kwargs={"k": top_k})
+    # retriever = vector_store.as_retriever(
+    #     search_type="similarity", search_kwargs={"k": top_k})
+    compressor = CohereRerank(
+        cohere_api_key=config['cohere_api_key'], top_n=top_n)
+    retriever = ContextualCompressionRetriever(
+        base_compressor=compressor, base_retriever=vector_store.as_retriever(
+            search_type="similarity", search_kwargs={"k": top_k}),
+    )
     chain = create_chain_with_chat_history(
-        contextualize_q_prompt_str=_TEMPLATE,
-        qa_system_prompt_str=_ANSWER_TEMPLATE,
+        contextualize_q_prompt_str=template,
+        qa_system_prompt_str=answer_template,
         retriever=retriever,
         llm_model=llm_model,
     )
     return chain
 
 
-# ============================== MAIN ==============================
+# ============================== PROMPTING ==============================
+_TEMPLATE = """Given the following conversation and a follow-up question, \
+rephrase the follow-up question to be a standalone question in its original language. 
+If the follow-up question is not clear, indicate so. 
+If the chat history is not relevant to the follow-up question, please ignore the chat history.
 
+Chat History:
+{chat_history}
+
+Follow-up Question: {question}
+Standalone Question: """
+
+_ANSWER_TEMPLATE = """The context information is below.
+Context: 
+{context}
+
+Based on the context and the metadata information provided, \
+answer the query related to banking compliance in Indonesia.
+Use the context and metadata information only, without relying on prior knowledge. 
+ALWAYS ANSWER IN THE USER'S LANGUAGE.
+
+Please provide your answer in the following format, \
+including the regulation number and file URL if available:
+
+(Answer...) \n\n
+Source: [metadata['regulation_number']](metadata['file_url'])
+
+If you cannot find the regulation number, just provide the (Answer...). 
+If the file_url ends with '.pdf', you can add the metadata['page_number'] in the URL like this: 
+
+(Answer...) \n\n
+Source: [metadata['regulation_number']](metadata['file_url#page=metadata['page_number']')
+
+(Answer...) is the answer to the question, don't write '(Answer...)' in the answer.
+DO NOT PROVIDE AMBIGUOUS ANSWERS.
+
+Question: {question}
+"""
+
+
+# ============================== CONSTANTS ==============================
 TOP_K = 10
+TOP_N = 6
 model_name = ModelName.AZURE_OPENAI
+
+# ============================== MAIN ==============================
 
 config = get_config_streamlit()
 
@@ -109,7 +125,8 @@ if "messages" not in st.session_state:
 
 # Initialize chain and chat history
 if "chain" not in st.session_state:
-    st.session_state.chain = load_chain(config=config, top_k=TOP_K)
+    st.session_state.chain = load_chain(config=config, top_k=TOP_K, top_n=TOP_N, model_name=model_name,
+                                        template=_TEMPLATE, answer_template=_ANSWER_TEMPLATE)
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = ChatHistory()

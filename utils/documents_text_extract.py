@@ -39,15 +39,20 @@ def extract_text_and_images_from_page(doc, page, ocr, treshold):
 def extract_text_from_pdf(file_path, ocr, treshold):
     # Load the PDF file
     doc = fitz.open(file_path)
-    text = ""
+    # text = ""
+    text_with_page = []
     # Iterate through all pages in the PDF
     for page_num in range(len(doc)):
         page = doc[page_num]
         # Extract text and images from the page
         page_text = extract_text_and_images_from_page(doc, page, ocr, treshold)
         # text += page_text + "\n"
-        text += f"page={page_num + 1}\n====================\n{page_text}\n====================\n"
-    return text
+        # text += f"page={page_num + 1}\n====================\n{page_text}\n====================\n"
+        text_with_page.append({
+            "page_number": page_num + 1,
+            "text": page_text
+        })
+    return text_with_page
 
 
 # ==================== EXTRACT TEXT FROM DOCX ====================
@@ -77,13 +82,23 @@ def extract_text_from_excel(excel_path):
 
 # # ==================== MAIN ====================
 
-def convert_text_to_document(text, metadata):
-    return Document(
-        page_content=text,
-        metadata=extract_metadata_from_df(metadata)
-    )
+def convert_text_to_document(metadata, text, page_number=None):
+    if page_number is None:
+        return Document(
+            page_content=text,
+            metadata=extract_metadata_from_dataframe(metadata)
+        )
+    else:
+        page_content = text
+        metadata = extract_metadata_from_dataframe(metadata)
+        metadata['page_number'] = page_number
+        return Document(
+            page_content=page_content,
+            metadata=metadata
+        )
 
-def extract_metadata_from_df(metadata):
+
+def extract_metadata_from_dataframe(metadata):
     return {
         # "file_name": metadata['new_filename'],
         "title": metadata['title'],
@@ -95,6 +110,7 @@ def extract_metadata_from_df(metadata):
         "file_url": metadata['file_url'],
     }
 
+
 def extract_all_documents_in_directory(documents_dir, metadata_path, treshold=0.98):
     ocr = PaddleOCR(use_angle_cls=True, lang='id', show_log=False)
 
@@ -104,21 +120,32 @@ def extract_all_documents_in_directory(documents_dir, metadata_path, treshold=0.
 
     for file in os.listdir(documents_dir):
         file_path = os.path.join(documents_dir, file)
-        file_metadata = df_metadata[df_metadata['new_filename'] == file].iloc[0]
+        file_metadata = df_metadata[df_metadata['new_filename']
+                                    == file].iloc[0]
         if file.endswith('.pdf'):
-            text =  "metadata=" + str(extract_metadata_from_df(file_metadata)) + '\n'
-            text = text + extract_text_from_pdf(file_path, ocr, treshold)
-            document = convert_text_to_document(text, file_metadata)
-            docs.append(document)
+            metadata = extract_metadata_from_dataframe(file_metadata)
+            text_with_page = extract_text_from_pdf(
+                file_path, ocr, treshold)
+            for page in text_with_page:
+                metadata_with_page = metadata.copy()
+                metadata_with_page['page_number'] = page['page_number']
+                metadata_str = "metadata=" + str(metadata_with_page) + '\n'
+                document = convert_text_to_document(
+                    text=metadata_str + page['text'], metadata=file_metadata, page_number=page['page_number'])
+                docs.append(document)
         elif file.endswith('.xlsm') or file.endswith('.xlsx') or file.endswith('.xls'):
-            text = "metadata=" + str(extract_metadata_from_df(file_metadata)) + '\n'
-            text = text + extract_text_from_excel(file_path) + '\n'
-            document = convert_text_to_document(text, file_metadata)
+            metadata_str = "metadata=" + \
+                str(extract_metadata_from_dataframe(file_metadata)) + '\n'
+            text = metadata_str + extract_text_from_excel(file_path) + '\n'
+            document = convert_text_to_document(
+                text=text, metadata=file_metadata)
             docs.append(document)
         elif file.endswith('.docx'):
-            text = "metadata=" + str(extract_metadata_from_df(file_metadata)) + '\n'
-            text = text + extract_text_from_docx(file_path) + '\n'
-            document = convert_text_to_document(text, file_metadata)
+            metadata_str = "metadata=" + \
+                str(extract_metadata_from_dataframe(file_metadata)) + '\n'
+            text = metadata_str + extract_text_from_docx(file_path) + '\n'
+            document = convert_text_to_document(
+                text=text, metadata=file_metadata)
             docs.append(document)
     print(f"Read {len(docs)} documents")
     return docs
