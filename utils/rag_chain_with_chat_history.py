@@ -15,15 +15,20 @@ from utils.model_config import ModelName
 
 # ===== formatting functions =====
 
+
+def _format_metadata(metadata):
+    """Remove filename from metadata."""
+    # check if file_name is in metadata
+    if "file_name" in metadata:
+        metadata.pop("file_name", None)
+    return metadata
+
+
 def _combine_documents(docs):
     """Combine documents into a single JSON string."""
-    doc_list = [{"metadata": doc.metadata, "page_content": doc.page_content} for doc in docs]
+    doc_list = [{"metadata": _format_metadata(doc.metadata), "page_content": doc.page_content} for doc in docs]
     return json.dumps(doc_list, indent=2)
 
-
-# def _format_chat_history(chat_history: ChatHistory) -> str:
-#     """Format chat history into a string."""
-#     return chat_history.format_history()
 
 def create_chain_with_chat_history(contextualize_q_prompt_str: str, qa_system_prompt_str: str, retriever: BaseRetriever, llm_model: ModelName):
     CONTEXTUALIZE_Q_PROMPT_STR = contextualize_q_prompt_str

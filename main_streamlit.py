@@ -16,30 +16,36 @@ load_dotenv()
 
 
 # Templates for prompts
-_TEMPLATE = """Given the following conversation and a follow up question, rephrase the 
-follow up question to be a standalone question WITH ITS ORIGINAL LANGUAGE. if the follow \
-up question is not clear. 
-If the chat history is not relevant to the follow up question, please ignore it.
+_TEMPLATE = """Given the following conversation and a follow-up question, \
+rephrase the follow-up question to be a standalone question in its original language. 
+If the follow-up question is not clear, indicate so. If the chat history is not relevant \
+to the follow-up question, please ignore the chat history.
 
-Chat history:
+Chat History:
 {chat_history}
-Follow up question: {question}
-Standalone question:"""
 
-_ANSWER_TEMPLATE = """Context information is below.
-context: {context}
+Follow-up Question: {question}
+Standalone Question::"""
 
-Given the context and the metadata information and not prior knowledge, \
-answer the query asking about banking compliance in Indonesia. 
-Answer the question based on the context and the metadata information.
-ALWAYS ANSWER WITH USER'S LANGUAGE.
-Please provide your answer with [regulation_number](file_url) in metadata \
-(if possible) in the following format:
+_ANSWER_TEMPLATE = """The context information is below.
+Context: 
+{context}
 
-Answer... \n\n
+Based on the context and the metadata information provided, answer the query \
+related to banking compliance in Indonesia. 
+Use the context and metadata information only, without relying on prior knowledge. 
+ALWAYS ANSWER IN THE USER'S LANGUAGE.
+
+Please provide your answer in the following format, including the regulation number and file URL if available:
+[ANSWER] \n\n
 Source: [metadata['regulation_number']](metadata['file_url'])
 
-But if you cannot find the regulation number, just provide the answer.
+If you cannot find the regulation number, just provide the answer. 
+If the query is about effective date, regulation type, regulation number, \
+regulation type, sector, subsector, or title information, check the context metadata first. \
+If not found, then refer to the context page_content.
+
+DO NOT PROVIDE AMBIGUOUS ANSWERS.
 
 Question: {question}
 """
@@ -67,15 +73,14 @@ def check_password():
 
 
 @st.cache_resource(show_spinner=False)
-def load_chain(config: dict = None):
-    TOP_K = 6
+def load_chain(config: dict = None, top_k: int = 10):
     llm_model, embed_model = get_model(
-        model_name=ModelName.OPENAI, config=config)
+        model_name=model_name, config=config)
 
     pinecone = PineconeIndexManager(index_name='ojk', embed_model=embed_model, config=config)
     vector_store = pinecone.load_vector_index()
     retriever = vector_store.as_retriever(
-        search_type="similarity", search_kwargs={"k": TOP_K})
+        search_type="similarity", search_kwargs={"k": top_k})
     chain = create_chain_with_chat_history(
         contextualize_q_prompt_str=_TEMPLATE,
         qa_system_prompt_str=_ANSWER_TEMPLATE,
@@ -86,6 +91,9 @@ def load_chain(config: dict = None):
 
 
 # ============================== MAIN ==============================
+
+TOP_K = 10
+model_name = ModelName.AZURE_OPENAI
 
 config = get_config_streamlit()
 
@@ -99,13 +107,10 @@ if "messages" not in st.session_state:
             "content": "Ask me a question about any Regulation of BI and OJK"}
     ]
 
-TOP_K = 3
-model_name = ModelName.AZURE_OPENAI
-
 
 # Initialize chain and chat history
 if "chain" not in st.session_state:
-    st.session_state.chain = load_chain(config=config)
+    st.session_state.chain = load_chain(config=config, top_k=TOP_K)
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = ChatHistory()
@@ -129,7 +134,7 @@ if st.session_state.messages[-1]["role"] != "assistant":
     with st.chat_message("assistant"):
         placeholder = st.empty()
 
-        with st.spinner("Thinking..."):
+        with st.spinner("Generating response..."):
             answer_chunks = []
             for chunk in st.session_state.chain.stream(
                 {"chat_history": st.session_state.chat_history, "question": prompt}

@@ -2,10 +2,12 @@
 import os
 import streamlit as st
 
+# for local testing
+
 def get_config():
     openai_api_key = os.getenv("OPENAI_KEY")
     azure_api_key = os.getenv("AZURE_OPENAI_KEY")
-    azure_api_version = os.getenv("API_VERSION")
+    azure_api_version = os.getenv("AZURE_API_VERSION")
     azure_api_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
     azure_api_deployment_id = os.getenv("AZURE_OPENAI_DEPLOYMENT_ID")
     pinecone_api_key = os.getenv("PINECONE_API_KEY")
@@ -29,6 +31,7 @@ def get_config():
         "cohere_api_key": cohere_api_key
     }
 
+# for deployment
 
 def get_config_streamlit():
     openai_api_key = st.secrets["openai_key"]

@@ -45,7 +45,8 @@ def extract_text_from_pdf(file_path, ocr, treshold):
         page = doc[page_num]
         # Extract text and images from the page
         page_text = extract_text_and_images_from_page(doc, page, ocr, treshold)
-        text += page_text + "\n"
+        # text += page_text + "\n"
+        text += f"page={page_num + 1}\n====================\n{page_text}\n====================\n"
     return text
 
 
@@ -76,6 +77,23 @@ def extract_text_from_excel(excel_path):
 
 # # ==================== MAIN ====================
 
+def convert_text_to_document(text, metadata):
+    return Document(
+        page_content=text,
+        metadata=extract_metadata_from_df(metadata)
+    )
+
+def extract_metadata_from_df(metadata):
+    return {
+        # "file_name": metadata['new_filename'],
+        "title": metadata['title'],
+        "sector": metadata['sektor'],
+        "subsector": metadata['subsektor'],
+        "regulation_type": metadata['jenis_regulasi'],
+        "regulation_number": metadata['nomor_regulasi'],
+        "effective_date": metadata['tanggal_berlaku'],
+        "file_url": metadata['file_url'],
+    }
 
 def extract_all_documents_in_directory(documents_dir, metadata_path, treshold=0.98):
     ocr = PaddleOCR(use_angle_cls=True, lang='id', show_log=False)
@@ -86,54 +104,21 @@ def extract_all_documents_in_directory(documents_dir, metadata_path, treshold=0.
 
     for file in os.listdir(documents_dir):
         file_path = os.path.join(documents_dir, file)
-        file_metadata = df_metadata[df_metadata['new_filename'] == file]
+        file_metadata = df_metadata[df_metadata['new_filename'] == file].iloc[0]
         if file.endswith('.pdf'):
-            text = extract_text_from_pdf(file_path, ocr, treshold)
-            document = Document(
-                page_content=text,
-                metadata={
-                    "file_name": file_metadata['new_filename'].values[0],
-                    "title": file_metadata['title'].values[0],
-                    "sector": file_metadata['sektor'].values[0],
-                    "subsector": file_metadata['subsektor'].values[0],
-                    "regulation_type": file_metadata['jenis_regulasi'].values[0],
-                    "regulation_number": file_metadata['nomor_regulasi'].values[0],
-                    "effective_date": file_metadata['tanggal_berlaku'].values[0],
-                    "file_url": file_metadata['file_url'].values[0],
-                }
-            )
+            text =  "metadata=" + str(extract_metadata_from_df(file_metadata)) + '\n'
+            text = text + extract_text_from_pdf(file_path, ocr, treshold)
+            document = convert_text_to_document(text, file_metadata)
             docs.append(document)
         elif file.endswith('.xlsm') or file.endswith('.xlsx') or file.endswith('.xls'):
-            text = extract_text_from_excel(file_path)
-            document = Document(
-                page_content=text,
-                metadata={
-                    "file_name": file_metadata['new_filename'].values[0],
-                    "title": file_metadata['title'].values[0],
-                    "sector": file_metadata['sektor'].values[0],
-                    "subsector": file_metadata['subsektor'].values[0],
-                    "regulation_type": file_metadata['jenis_regulasi'].values[0],
-                    "regulation_number": file_metadata['nomor_regulasi'].values[0],
-                    "effective_date": file_metadata['tanggal_berlaku'].values[0],
-                    "file_url": file_metadata['file_url'].values[0],
-                }
-            )
+            text = "metadata=" + str(extract_metadata_from_df(file_metadata)) + '\n'
+            text = text + extract_text_from_excel(file_path) + '\n'
+            document = convert_text_to_document(text, file_metadata)
             docs.append(document)
         elif file.endswith('.docx'):
-            text = extract_text_from_docx(file_path)
-            document = Document(
-                page_content=text,
-                metadata={
-                    "file_name": file_metadata['new_filename'].values[0],
-                    "title": file_metadata['title'].values[0],
-                    "sector": file_metadata['sektor'].values[0],
-                    "subsector": file_metadata['subsektor'].values[0],
-                    "regulation_type": file_metadata['jenis_regulasi'].values[0],
-                    "regulation_number": file_metadata['nomor_regulasi'].values[0],
-                    "effective_date": file_metadata['tanggal_berlaku'].values[0],
-                    "file_url": file_metadata['file_url'].values[0],
-                }
-            )
+            text = "metadata=" + str(extract_metadata_from_df(file_metadata)) + '\n'
+            text = text + extract_text_from_docx(file_path) + '\n'
+            document = convert_text_to_document(text, file_metadata)
             docs.append(document)
     print(f"Read {len(docs)} documents")
     return docs
