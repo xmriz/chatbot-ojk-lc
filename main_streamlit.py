@@ -25,7 +25,7 @@ Chat History:
 {chat_history}
 
 Follow-up Question: {question}
-Standalone Question::"""
+Standalone Question: """
 
 _ANSWER_TEMPLATE = """The context information is below.
 Context: 
@@ -37,13 +37,12 @@ Use the context and metadata information only, without relying on prior knowledg
 ALWAYS ANSWER IN THE USER'S LANGUAGE.
 
 Please provide your answer in the following format, including the regulation number and file URL if available:
-[ANSWER] \n\n
+Answer... \n\n
 Source: [metadata['regulation_number']](metadata['file_url'])
 
 If you cannot find the regulation number, just provide the answer. 
-If the query is about effective date, regulation type, regulation number, \
-regulation type, sector, subsector, or title information, check the context metadata first. \
-If not found, then refer to the context page_content.
+If file_url is end with .pdf, you can add the page number in the URL like this: \
+[metadata['regulation_number']](metadata['file_url]#page=pagenumber)
 
 DO NOT PROVIDE AMBIGUOUS ANSWERS.
 
