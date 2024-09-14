@@ -1,8 +1,11 @@
-.env
+.vscode/
+.idea/
 temp_notebook/
 main_develop.ipynb
 data/
 __pycache__/
 .streamlit/
-chatbot-lc
 .devcontainer/
+.env
+env/
+ocbc
